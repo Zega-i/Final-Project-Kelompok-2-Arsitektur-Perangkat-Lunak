@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulasi Sistem PKM Upload</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3e;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --accent:   #6366f1;
+
+      --c-facade:   #3b82f6;
+      --c-proxy:    #a855f7;
+      --c-state:    #f97316;
+      --c-strategy: #22c55e;
+      --c-observer: #38bdf8;
+      --c-storage:  #94a3b8;
+      --c-system:   #64748b;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 1.5rem;
+      text-align: center;
+    }
+    header h1 { font-size: 1.25rem; color: var(--accent); }
+    header p  { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Left panel (form) ─────────────────────────────────────── */
+    .form-panel {
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      padding: 1.25rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .section-title {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      text-transform: uppercase;
+      margin-bottom: 0.5rem;
+    }
+
+    label { font-size: 0.85rem; color: var(--muted); display: block; margin-bottom: 0.25rem; }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input[type="text"]:focus, input[type="number"]:focus {
+      border-color: var(--accent);
+    }
+
+    .radio-group { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+    .radio-group label {
+      display: flex; align-items: center; gap: 0.35rem;
+      cursor: pointer; color: var(--text); font-size: 0.85rem;
+    }
+    .radio-group input[type="radio"] { accent-color: var(--accent); }
+
+    .syarat-group { margin-bottom: 0.75rem; }
+    .syarat-group-header {
+      font-size: 0.63rem;
+      font-weight: 700;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      margin-bottom: 0.4rem;
+      display: inline-block;
+    }
+    .syarat-header-proxy    { color: var(--c-proxy);    border: 1px solid var(--c-proxy);    background: rgba(168,85,247,0.08); }
+    .syarat-header-strategy { color: var(--c-strategy); border: 1px solid var(--c-strategy); background: rgba(34,197,94,0.08); }
+    .syarat-header-special  { color: var(--c-state);    border: 1px solid var(--c-state);    background: rgba(249,115,22,0.08); }
+
+    .syarat-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.45rem;
+      cursor: pointer;
+      padding: 0.15rem 0;
+    }
+    .syarat-item input[type="checkbox"] { accent-color: var(--accent); margin-top: 3px; flex-shrink: 0; }
+    .syarat-item-text { display: flex; flex-direction: column; }
+    .syarat-item-name { font-size: 0.83rem; color: var(--text); }
+    .syarat-item-desc { font-size: 0.7rem; color: var(--muted); line-height: 1.35; margin-top: 1px; }
+
+    .btn-run {
+      width: 100%;
+      padding: 0.65rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .btn-run:hover { opacity: 0.85; }
+    .btn-run:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-reset {
+      width: 100%;
+      padding: 0.5rem;
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .btn-reset:hover { border-color: var(--text); color: var(--text); }
+
+    .scenarios-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+    }
+    .btn-scenario {
+      padding: 0.45rem 0.5rem;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.78rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+      text-align: left;
+    }
+    .btn-scenario:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-scenario .sc-num { font-weight: 700; color: var(--accent); }
+
+    /* ── Right panel (log) ─────────────────────────────────────── */
+    .log-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      overflow: hidden;
+    }
+
+    .log-header {
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.75rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+    .dot.active { background: #22c55e; animation: pulse 1.2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .log-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem 1.25rem;
+      font-family: 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+    }
+
+    .log-empty {
+      color: var(--muted);
+      text-align: center;
+      margin-top: 3rem;
+      font-style: italic;
+    }
+
+    .log-entry {
+      display: flex;
+      gap: 0.75rem;
+      opacity: 0;
+      transform: translateY(4px);
+      animation: fadeIn 0.25s forwards;
+    }
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+
+    .log-tag {
+      font-weight: 700;
+      font-size: 0.75rem;
+      min-width: 72px;
+      padding: 1px 6px;
+      border-radius: 4px;
+      align-self: flex-start;
+      margin-top: 2px;
+    }
+    .tag-FACADE   { color: var(--c-facade);   border: 1px solid var(--c-facade); }
+    .tag-PROXY    { color: var(--c-proxy);    border: 1px solid var(--c-proxy); }
+    .tag-STATE    { color: var(--c-state);    border: 1px solid var(--c-state); }
+    .tag-STRATEGY { color: var(--c-strategy); border: 1px solid var(--c-strategy); }
+    .tag-OBSERVER { color: var(--c-observer); border: 1px solid var(--c-observer); }
+    .tag-STORAGE  { color: var(--c-storage);  border: 1px solid var(--c-storage); }
+    .tag-SYSTEM   { color: var(--c-system);   border: 1px solid var(--c-system); }
+
+    .log-msg { color: var(--text); flex: 1; }
+
+    .status-box {
+      margin: 1rem 1.25rem;
+      padding: 1rem;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      opacity: 0;
+      animation: fadeIn 0.4s forwards;
+    }
+    .status-SUBMITTED { background: #14532d; border: 2px solid #22c55e; color: #86efac; }
+    .status-REJECTED  { background: #450a0a; border: 2px solid #ef4444; color: #fca5a5; }
+    .status-DRAFT     { background: #1e293b; border: 2px solid #475569; color: #94a3b8; }
+    .status-DIBLOKIR  { background: #422006; border: 2px solid #f59e0b; color: #fcd34d; }
+
+    .loading {
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+      padding: 0.5rem 1.25rem;
+    }
+    .loading.visible { display: flex; }
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .divider { height: 1px; background: var(--border); margin: 0.25rem 0; }
+
+    @media (max-width: 768px) {
+      .main-layout { grid-template-columns: 1fr; }
+      .form-panel  { border-right: none; border-bottom: 1px solid var(--border); }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Simulasi Sistem PKM Upload</h1>
+  <p>Proof of Concept &mdash; State &middot; Strategy &middot; Proxy &middot; Observer &middot; Facade</p>
+</header>
+
+<div class="main-layout">
+
+  <!-- ══ FORM PANEL ══════════════════════════════════════════ -->
+  <div class="form-panel">
+
+    <div>
+      <div class="section-title">Data Mahasiswa</div>
+      <label>Nama Mahasiswa</label>
+      <input type="text" id="namaMahasiswa" placeholder="">
+      <br>
+      <label>NIM</label>
+      <input type="text" id="nim" placeholder="">
+    </div>
+
+    <div>
+      <div class="section-title">Jenis PKM</div>
+      <div class="radio-group">
+        <label><input type="radio" name="jenisPkm" value="PKM-K" checked onchange="updateSyaratGroups()"> PKM-K</label>
+        <label><input type="radio" name="jenisPkm" value="PKM-RE" onchange="updateSyaratGroups()"> PKM-RE</label>
+        <label><input type="radio" name="jenisPkm" value="PKM-PM" onchange="updateSyaratGroups()"> PKM-PM</label>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title">File Proposal</div>
+      <label>Nama File</label>
+      <input type="text" id="namaFile" placeholder="proposal_pkm_k.pdf">
+      <br>
+      <label>Ukuran File (MB)</label>
+      <input type="number" id="ukuranMb" placeholder="4.2" step="0.1" min="0">
+    </div>
+
+    <div>
+      <div class="section-title">Syarat &amp; Status</div>
+
+      <!-- PROXY — berlaku untuk semua jenis PKM -->
+      <div class="syarat-group">
+        <span class="syarat-group-header syarat-header-proxy">PROXY — semua PKM</span>
+        <label class="syarat-item">
+          <input type="checkbox" id="isAuthenticated" checked>
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Terautentikasi</span>
+            <span class="syarat-item-desc">✗ belum login → PROXY tolak di cek pertama, status DRAFT</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- STRATEGY PKM-K -->
+      <div class="syarat-group" id="group-pkm-k">
+        <span class="syarat-group-header syarat-header-strategy">STRATEGY — PKM-K</span>
+        <label class="syarat-item">
+          <input type="checkbox" id="hasAnggaranKas">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Anggaran Kas</span>
+            <span class="syarat-item-desc">✗ tidak ada → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+        <label class="syarat-item">
+          <input type="checkbox" id="susunanTimLengkap">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Susunan Tim Lengkap</span>
+            <span class="syarat-item-desc">✗ tidak lengkap → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- STRATEGY PKM-RE -->
+      <div class="syarat-group" id="group-pkm-re">
+        <span class="syarat-group-header syarat-header-strategy">STRATEGY — PKM-RE</span>
+        <label class="syarat-item">
+          <input type="checkbox" id="hasIzinLab">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Izin Laboratorium</span>
+            <span class="syarat-item-desc">✗ tidak ada → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+        <label class="syarat-item">
+          <input type="checkbox" id="hasPembimbing">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Pembimbing Terdaftar</span>
+            <span class="syarat-item-desc">✗ tidak terdaftar → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+        <label class="syarat-item">
+          <input type="checkbox" id="hasReferensiJurnal">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Referensi Jurnal</span>
+            <span class="syarat-item-desc">✗ tidak ada → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- STRATEGY PKM-PM -->
+      <div class="syarat-group" id="group-pkm-pm">
+        <span class="syarat-group-header syarat-header-strategy">STRATEGY — PKM-PM</span>
+        <label class="syarat-item">
+          <input type="checkbox" id="hasSuratIzinMitra">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Surat Izin Mitra</span>
+            <span class="syarat-item-desc">✗ tidak ada → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+        <label class="syarat-item">
+          <input type="checkbox" id="hasLokasiKegiatan">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Lokasi Kegiatan</span>
+            <span class="syarat-item-desc">✗ tidak terdefinisi → validasi STRATEGY gagal, REJECTED</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- SKENARIO KHUSUS -->
+      <div class="syarat-group">
+        <span class="syarat-group-header syarat-header-special">SKENARIO KHUSUS</span>
+        <label class="syarat-item">
+          <input type="checkbox" id="forceVerifying">
+          <div class="syarat-item-text">
+            <span class="syarat-item-name">Force VERIFYING</span>
+            <span class="syarat-item-desc">Simulasi upload ulang saat proposal sudah VERIFYING → DIBLOKIR</span>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <button class="btn-run" id="btnRun" onclick="jalankan()">&#9654; Jalankan Simulasi</button>
+    <button class="btn-reset" onclick="reset()">Reset</button>
+
+    <div>
+      <div class="section-title">Skenario Cepat</div>
+      <div class="scenarios-grid">
+        <button class="btn-scenario" onclick="loadSkenario(1)">
+          <span class="sc-num">Ske 1</span><br>PKM-K Sukses
+        </button>
+        <button class="btn-scenario" onclick="loadSkenario(2)">
+          <span class="sc-num">Ske 2</span><br>File .exe
+        </button>
+        <button class="btn-scenario" onclick="loadSkenario(3)">
+          <span class="sc-num">Ske 3</span><br>File &gt; 5 MB
+        </button>
+        <button class="btn-scenario" onclick="loadSkenario(4)">
+          <span class="sc-num">Ske 4</span><br>PKM-RE Tanpa Lab
+        </button>
+        <button class="btn-scenario" onclick="loadSkenario(5)">
+          <span class="sc-num">Ske 5</span><br>State Block
+        </button>
+        <button class="btn-scenario" onclick="loadSkenario(6)">
+          <span class="sc-num">Ske 6</span><br>PKM-PM Sukses
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ══ LOG PANEL ════════════════════════════════════════════ -->
+  <div class="log-panel">
+    <div class="log-header">
+      <div class="dot" id="statusDot"></div>
+      <span id="logHeaderText">Menunggu simulasi...</span>
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <span>Memproses simulasi (async delay)...</span>
+    </div>
+
+    <div class="log-body" id="logBody">
+      <div class="log-empty" id="logEmpty">Log simulasi akan muncul di sini setelah klik "Jalankan Simulasi".</div>
+    </div>
+
+    <div id="statusBox"></div>
+  </div>
+
+</div>
+
+<script>
+  const SKENARIO = {
+    1: { nama:"Budi Santoso", nim:"21/123456/TK/001", jenis:"PKM-K",
+         file:"proposal_pkm_k.pdf", ukuran:4.2, auth:true,
+         anggaranKas:true, susunanTim:true },
+    2: { nama:"Sari Dewi", nim:"21/234567/TK/002", jenis:"PKM-K",
+         file:"proposal.exe", ukuran:2.1, auth:true,
+         anggaranKas:true, susunanTim:true },
+    3: { nama:"Andi Pratama", nim:"21/345678/TK/003", jenis:"PKM-K",
+         file:"proposal_besar.pdf", ukuran:7.5, auth:true,
+         anggaranKas:true, susunanTim:true },
+    4: { nama:"Citra Lestari", nim:"21/456789/TK/004", jenis:"PKM-RE",
+         file:"proposal_pkm_re.pdf", ukuran:3.8, auth:true,
+         izinLab:false, pembimbing:true, referensiJurnal:true },
+    5: { nama:"Eko Wahyudi", nim:"21/567890/TK/005", jenis:"PKM-K",
+         file:"proposal_pkm_k.pdf", ukuran:3.1, auth:true,
+         anggaranKas:true, susunanTim:true, forceVerifying:true },
+    6: { nama:"Dian Rahayu", nim:"21/678901/TK/006", jenis:"PKM-PM",
+         file:"proposal_pkm_pm.pdf", ukuran:2.9, auth:true,
+         suratMitra:true, lokasiKegiatan:true }
+  };
+
+  const TAG_CLASS = {
+    'FACADE':'tag-FACADE', 'PROXY':'tag-PROXY', 'STATE':'tag-STATE',
+    'STRATEGY':'tag-STRATEGY', 'OBSERVER':'tag-OBSERVER',
+    'STORAGE':'tag-STORAGE', 'SYSTEM':'tag-SYSTEM'
+  };
+
+  const STATUS_LABELS = {
+    'SUBMITTED': 'STATUS AKHIR: SUBMITTED ✅',
+    'REJECTED':  'STATUS AKHIR: REJECTED ❌',
+    'DRAFT':     'STATUS AKHIR: DRAFT 🚫',
+    'DIBLOKIR':  'STATUS AKHIR: DIBLOKIR ⛔'
+  };
+
+  function updateSyaratGroups() {
+    const jenis = document.querySelector('[name="jenisPkm"]:checked').value;
+    document.getElementById('group-pkm-k').style.display  = jenis === 'PKM-K'  ? '' : 'none';
+    document.getElementById('group-pkm-re').style.display = jenis === 'PKM-RE' ? '' : 'none';
+    document.getElementById('group-pkm-pm').style.display = jenis === 'PKM-PM' ? '' : 'none';
+  }
+
+  function randomNim() {
+    const n = Math.floor(Math.random() * 99) + 1;
+    return '240511300' + String(n).padStart(2, '0');
+  }
+
+  function loadSkenario(n) {
+    const s = SKENARIO[n];
+    document.getElementById('namaMahasiswa').value = s.nama  || '';
+    document.getElementById('nim').value           = randomNim();
+    document.getElementById('namaFile').value      = s.file  || '';
+    document.getElementById('ukuranMb').value      = s.ukuran|| '';
+
+    document.querySelectorAll('[name="jenisPkm"]').forEach(r => {
+      r.checked = (r.value === (s.jenis || 'PKM-K'));
+    });
+
+    document.getElementById('isAuthenticated').checked    = !!s.auth;
+    document.getElementById('hasAnggaranKas').checked     = !!s.anggaranKas;
+    document.getElementById('susunanTimLengkap').checked  = !!s.susunanTim;
+    document.getElementById('hasIzinLab').checked         = (s.izinLab === true);
+    document.getElementById('hasPembimbing').checked      = !!s.pembimbing;
+    document.getElementById('hasReferensiJurnal').checked = !!s.referensiJurnal;
+    document.getElementById('hasSuratIzinMitra').checked  = !!s.suratMitra;
+    document.getElementById('hasLokasiKegiatan').checked  = !!s.lokasiKegiatan;
+    document.getElementById('forceVerifying').checked     = !!s.forceVerifying;
+
+    updateSyaratGroups();
+    jalankan();
+  }
+
+  function jalankan() {
+    const jenis = document.querySelector('[name="jenisPkm"]:checked').value;
+    const payload = {
+      namaMahasiswa:    document.getElementById('namaMahasiswa').value || 'Mahasiswa',
+      nim:              document.getElementById('nim').value || '00/000000/TK/000',
+      jenisPkm:         jenis,
+      namaFile:         document.getElementById('namaFile').value || 'proposal.pdf',
+      ukuranMb:         parseFloat(document.getElementById('ukuranMb').value) || 1.0,
+      isAuthenticated:  document.getElementById('isAuthenticated').checked,
+      hasAnggaranKas:   document.getElementById('hasAnggaranKas').checked,
+      susunanTimLengkap:document.getElementById('susunanTimLengkap').checked,
+      hasIzinLab:       document.getElementById('hasIzinLab').checked,
+      hasPembimbing:    document.getElementById('hasPembimbing').checked,
+      hasReferensiJurnal:document.getElementById('hasReferensiJurnal').checked,
+      hasSuratIzinMitra:document.getElementById('hasSuratIzinMitra').checked,
+      hasLokasiKegiatan:document.getElementById('hasLokasiKegiatan').checked,
+      forceVerifying:   document.getElementById('forceVerifying').checked
+    };
+
+    clearLog();
+    setLoading(true);
+    document.getElementById('btnRun').disabled = true;
+    document.getElementById('logHeaderText').textContent = 'Menjalankan simulasi...';
+    document.getElementById('statusDot').classList.add('active');
+
+    fetch('/simulate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+    .then(r => r.json())
+    .then(data => {
+      setLoading(false);
+      document.getElementById('btnRun').disabled = false;
+      document.getElementById('logHeaderText').textContent =
+          'Selesai — ' + data.logs.length + ' log entri';
+      document.getElementById('statusDot').classList.remove('active');
+      document.getElementById('statusDot').style.background = '#22c55e';
+
+      data.logs.forEach((entry, i) => {
+        setTimeout(() => appendLog(entry.tag, entry.pesan), i * 250);
+      });
+
+      const delay = data.logs.length * 250 + 300;
+      setTimeout(() => showStatus(data.statusAkhir), delay);
+    })
+    .catch(err => {
+      setLoading(false);
+      document.getElementById('btnRun').disabled = false;
+      document.getElementById('statusDot').classList.remove('active');
+      document.getElementById('logHeaderText').textContent = 'Koneksi gagal';
+      appendLog('SYSTEM', 'ERROR: Tidak bisa terhubung ke server Java. Pastikan server berjalan di port 8080.');
+      appendLog('SYSTEM', err.toString());
+    });
+  }
+
+  function appendLog(tag, pesan) {
+    const empty = document.getElementById('logEmpty');
+    if (empty) empty.remove();
+
+    const body = document.getElementById('logBody');
+    const row  = document.createElement('div');
+    row.className = 'log-entry';
+
+    const tagEl  = document.createElement('span');
+    tagEl.className = 'log-tag ' + (TAG_CLASS[tag] || 'tag-SYSTEM');
+    tagEl.textContent = tag;
+
+    const msgEl = document.createElement('span');
+    msgEl.className = 'log-msg';
+    msgEl.textContent = pesan;
+
+    row.appendChild(tagEl);
+    row.appendChild(msgEl);
+    body.appendChild(row);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function showStatus(statusAkhir) {
+    const box = document.getElementById('statusBox');
+    const div = document.createElement('div');
+    div.className = 'status-box status-' + (statusAkhir === 'SUBMITTED' ? 'SUBMITTED'
+                                           : statusAkhir === 'REJECTED'  ? 'REJECTED'
+                                           : statusAkhir === 'DIBLOKIR'  ? 'DIBLOKIR'
+                                           : 'DRAFT');
+    div.textContent = STATUS_LABELS[statusAkhir] || ('STATUS AKHIR: ' + statusAkhir);
+    box.innerHTML = '';
+    box.appendChild(div);
+  }
+
+  function clearLog() {
+    const body = document.getElementById('logBody');
+    body.innerHTML = '';
+    document.getElementById('statusBox').innerHTML = '';
+    document.getElementById('statusDot').style.background = '';
+  }
+
+  function setLoading(on) {
+    document.getElementById('loading').classList.toggle('visible', on);
+  }
+
+  function reset() {
+    clearLog();
+    document.getElementById('namaMahasiswa').value = '';
+    document.getElementById('nim').value = '';
+    document.getElementById('namaFile').value = '';
+    document.getElementById('ukuranMb').value = '';
+    document.querySelectorAll('[name="jenisPkm"]')[0].checked = true;
+    ['isAuthenticated','hasAnggaranKas','susunanTimLengkap','hasIzinLab',
+     'hasPembimbing','hasReferensiJurnal','hasSuratIzinMitra','hasLokasiKegiatan',
+     'forceVerifying'].forEach(id => {
+      document.getElementById(id).checked = (id === 'isAuthenticated');
+    });
+    const body = document.getElementById('logBody');
+    body.innerHTML = '<div class="log-empty" id="logEmpty">Log simulasi akan muncul di sini setelah klik "Jalankan Simulasi".</div>';
+    document.getElementById('logHeaderText').textContent = 'Menunggu simulasi...';
+    document.getElementById('statusDot').classList.remove('active');
+    document.getElementById('statusDot').style.background = '';
+    document.getElementById('btnRun').disabled = false;
+    updateSyaratGroups();
+  }
+
+  updateSyaratGroups();
+</script>
+
+</body>
+</html>
