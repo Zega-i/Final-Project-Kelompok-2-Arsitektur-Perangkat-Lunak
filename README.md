@@ -65,4 +65,3 @@ java -cp . "-Dfile.encoding=UTF-8" Main --server
 ## 👥 Tim Pengembang - Kelompok 2
 *Proyek Akhir Mata Kuliah Arsitektur Perangkat Lunak*
 
-*Dibuat dengan ❤️ oleh Mahasiswa Teknik untuk memecahkan masalah kemacetan unggah proposal!*
